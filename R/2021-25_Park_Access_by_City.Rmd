@@ -1,0 +1,174 @@
+---
+title: "TidyTuesday 2021/25 - Park Access by City"
+author: "Sebastian Lammers"
+date: "22nd of June 2021"
+output:
+  html_document:
+  theme: paper
+highlight: kate
+editor_options:
+  chunk_output_type: console
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  fig.showtext = T,
+  fig.retina = 1
+)
+```
+
+```{r prep, message=FALSE, warning=FALSE}
+## packages
+library(tidyverse)
+library(gghighlight)
+library(ggrepel)
+library(ggdist)
+library(systemfonts)
+library(ggtext)
+library(pdftools)
+
+theme_set(theme_minimal(base_family = "Avenir Next Condensed", base_size = 16))
+theme_update(
+  axis.text.x = element_markdown(margin = margin(rep(0, 4))),
+  axis.text.x.top = element_markdown(margin = margin(rep(0, 4))),
+  axis.text.y = element_text(
+    family = "Lora", face = "bold",
+    size = 14, vjust = 0
+  ),
+  axis.ticks = element_blank(),
+  # axis.ticks.length.x = unit(.4, "lines"),
+  axis.title = element_blank(),
+  legend.position = "none",
+  panel.grid = element_blank(),
+  plot.margin = margin(20, 40, 20, 40),
+  plot.background = element_rect(fill = "#f0f4eb", color = "#f0f4eb"),
+  panel.background = element_rect(fill = "#f0f4eb", color = "#f0f4eb"),
+  plot.title = element_text(
+    family = "Lora", color = "#365e25",
+    size = 28, face = "bold",
+    margin = margin(t = 15)
+  ),
+  plot.subtitle = element_markdown(
+    color = "#365e25", size = 14,
+    lineheight = 1.35,
+    margin = margin(t = 15, b = 30)
+  ),
+  plot.title.position = "plot",
+  plot.caption = element_text(
+    color = "#56963c", size = 10,
+    margin = margin(t = 25)
+  )
+)
+```
+
+```{r data}
+df_parks <-
+  readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-06-22/parks.csv")
+```
+
+```{r prep-data}
+city_trends <- df_parks %>%
+  filter(
+    year >= 2016,
+    # city %in% cities_of_change
+  ) %>%
+  # add a parameter that indicates if rank has gone up or down
+  group_by(city) %>%
+  summarise(yearly_diff = diff(rank)) %>%
+  # overall trend (positive vs. negative)
+  # and amount
+  summarise(trend = sum(yearly_diff),
+            abs_trend = abs(trend),
+            sign = sign(trend)) %>%
+  arrange(desc(abs_trend)) %>%
+  ungroup()
+
+city_trend_top_five <- 
+  city_trends %>% 
+  head(5) %>% 
+  pull(city)
+
+df_parks_feat <- df_parks %>% 
+  filter(
+    year >= 2016,
+    city %in% city_trend_top_five
+  ) %>%
+  
+  select(city, year, rank) %>% 
+  
+  # prepare labels
+  mutate(
+    label = case_when(
+      year == max(year) ~ as.character(city),
+      TRUE ~ NA_character_
+      )
+  ) %>% 
+  
+  # add trend and sign of trend
+  left_join(city_trends)
+      
+  
+```
+
+```{r}
+green <- "#08605f"
+brown <- "#e0a458"
+
+df_parks_feat %>%
+  ggplot(
+    aes(
+      year,
+      rank,
+      color = sign > 0,
+      group = city
+    )
+  ) +
+  geom_line() +
+  
+  geom_point() +
+
+  geom_label_repel(aes(label = label),
+                  nudge_x = 7,
+                  na.rm = TRUE) +
+
+  scale_y_reverse() +
+  theme_classic() +
+  
+  scale_color_manual(values = c(brown, green)) +
+
+  
+  labs(
+    title = "<span style = 'color:#08605f;font-weight:bold'> Winners </span> and <span style = 'color:#e0a458;font-weight:bold'> Losers</span>",
+    subtitle = "Shown are the 5 cities with biggest change in rank over the last 5 years.",
+    caption = "Visualization by Sebastian Lammers  •  Data by The Trust for Public Land",
+    x = "Year",
+    y = "Rank"
+  ) +
+  
+  theme(
+    text = element_text(family = "Times"),
+    plot.title.position = "plot",
+    plot.title = element_markdown(face = "bold", size = 32),
+    plot.subtitle = element_markdown(size = 18),
+    legend.position = "none"
+  )
+```
+
+
+```{r convert-to-png}
+## convert PDF to PNG 2021/25 - Park Access by City
+path <- here::here("plots", "2021_25_Park_Access_by_City")
+
+my_ggsave(path = path)
+
+```
+
+***
+
+```{r session}
+Sys.time()
+git2r::repository()
+sessionInfo()
+```
