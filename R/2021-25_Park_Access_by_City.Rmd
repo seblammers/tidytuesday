@@ -24,43 +24,10 @@ knitr::opts_chunk$set(
 library(tidyverse)
 library(gghighlight)
 library(ggrepel)
-library(ggdist)
 library(systemfonts)
 library(ggtext)
 library(pdftools)
 
-theme_set(theme_minimal(base_family = "Avenir Next Condensed", base_size = 16))
-theme_update(
-  axis.text.x = element_markdown(margin = margin(rep(0, 4))),
-  axis.text.x.top = element_markdown(margin = margin(rep(0, 4))),
-  axis.text.y = element_text(
-    family = "Lora", face = "bold",
-    size = 14, vjust = 0
-  ),
-  axis.ticks = element_blank(),
-  # axis.ticks.length.x = unit(.4, "lines"),
-  axis.title = element_blank(),
-  legend.position = "none",
-  panel.grid = element_blank(),
-  plot.margin = margin(20, 40, 20, 40),
-  plot.background = element_rect(fill = "#f0f4eb", color = "#f0f4eb"),
-  panel.background = element_rect(fill = "#f0f4eb", color = "#f0f4eb"),
-  plot.title = element_text(
-    family = "Lora", color = "#365e25",
-    size = 28, face = "bold",
-    margin = margin(t = 15)
-  ),
-  plot.subtitle = element_markdown(
-    color = "#365e25", size = 14,
-    lineheight = 1.35,
-    margin = margin(t = 15, b = 30)
-  ),
-  plot.title.position = "plot",
-  plot.caption = element_text(
-    color = "#56963c", size = 10,
-    margin = margin(t = 25)
-  )
-)
 ```
 
 ```{r data}
@@ -112,7 +79,7 @@ df_parks_feat <- df_parks %>%
   
 ```
 
-```{r}
+```{r plot}
 green <- "#08605f"
 brown <- "#e0a458"
 
@@ -148,7 +115,7 @@ df_parks_feat %>%
   ) +
   
   theme(
-    text = element_text(family = "Times"),
+    text = element_text(family = "Roboto"),
     plot.title.position = "plot",
     plot.title = element_markdown(face = "bold", size = 32),
     plot.subtitle = element_markdown(size = 18),
@@ -161,7 +128,18 @@ df_parks_feat %>%
 ## convert PDF to PNG 2021/25 - Park Access by City
 path <- here::here("plots", "2021_25_Park_Access_by_City")
 
-my_ggsave(path = path)
+ggsave(glue::glue("{path}.pdf"), 
+         width = 10, 
+         height = 6, 
+         device = cairo_pdf)
+  
+  # convert to png
+  pdftools::pdf_convert(
+    pdf = glue::glue("{path}.pdf"),
+    format = "png",
+    dpi = 250,
+    filenames = glue::glue("{path}.png")
+  )
 
 ```
 
